@@ -33,18 +33,15 @@ def day1(filename: str):
 
 
 def day2(filename: str):
-    def collect(keys, s):
+    def collect(s):
         return np.array([int(match.group(1))
                          if (match := re.search(f'(\\d+) {k}', s)) else 0
-                         for k in keys])
-
-    colours = {'red', 'green', 'blue'}
-    cubes = collect(colours, '12 red, 13 green, 14 blue')
+                         for k in {'red', 'green', 'blue'}])
 
     lines = [re.split(r':|;', line.strip()) for line in open(filename).readlines()]
     gameids = (int(header[5:]) for header, *_ in lines)
-    maxs = [reduce(np.maximum, (collect(colours, draw) for draw in draws)) for _, *draws in lines]
-    part1 = sum(id for id, m in zip(gameids, maxs) if all(m <= cubes))
+    maxs = [reduce(np.maximum, (collect(draw) for draw in draws)) for _, *draws in lines]
+    part1 = sum(id for id, m in zip(gameids, maxs) if all(m <= np.array([12, 13, 14])))
     part2 = sum(reduce(operator.mul, m) for m in maxs)
     return part1, part2
 
