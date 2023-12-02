@@ -7,6 +7,8 @@ from itertools import zip_longest, starmap, count, chain, islice, takewhile, acc
 from functools import reduce, partial, cmp_to_key
 from collections import Counter
 import re
+import numpy as np
+
 
 def tails(xs):
     while xs:
@@ -17,7 +19,7 @@ def tails(xs):
 def day1(filename: str):
     def tonumber(s: str):
         lookup = dict(one=1, two=2, three=3, four=4, five=5, six=6, seven=7, eight=8, nine=9)
-        return int(s[0]) if s[0].isnumeric() else next((v for k,v in lookup.items() if s.startswith(k)), None)
+        return int(s[0]) if s[0].isnumeric() else next((v for k, v in lookup.items() if s.startswith(k)), None)
 
     matches = [re.findall(r'\d', line) for line in open(filename).readlines()]
     answer1 = sum(int(f'{match[0]}{match[-1]}') for match in matches)
@@ -28,6 +30,23 @@ def day1(filename: str):
     answer2 = sum(numbers)
 
     return answer1, answer2
+
+
+def day2(filename: str):
+    def collect(keys, s):
+        return np.array([int(match.group(1))
+                         if (match := re.search(f'(\\d+) {k}', s)) else 0
+                         for k in keys])
+
+    colours = {'red', 'green', 'blue'}
+    cubes = collect(colours, '12 red, 13 green, 14 blue')
+
+    lines = [re.split(r':|;', line.strip()) for line in open(filename).readlines()]
+    gameids = (int(header[5:]) for header, *_ in lines)
+    maxs = [reduce(np.maximum, (collect(colours, draw) for draw in draws)) for _, *draws in lines]
+    part1 = sum(id for id, m in zip(gameids, maxs) if all(m <= cubes))
+    part2 = sum(reduce(operator.mul, m) for m in maxs)
+    return part1, part2
 
 
 if __name__ == '__main__':
