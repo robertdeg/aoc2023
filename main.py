@@ -1,3 +1,4 @@
+import itertools
 import time
 
 import collections
@@ -15,6 +16,15 @@ def tails(xs):
         yield xs
         xs = xs[1:]
 
+
+def sliding_window(iterable, n):
+    iterables = itertools.tee(iterable, n)
+
+    for iterable, num_skipped in zip(iterables, itertools.count()):
+        for _ in range(num_skipped):
+            next(iterable, None)
+
+    return zip(*iterables)
 
 def day1(filename: str):
     def tonumber(s: str):
@@ -39,18 +49,54 @@ def day2(filename: str):
                          for k in {'red', 'green', 'blue'}])
 
     lines = [re.split(r':|;', line.strip()) for line in open(filename).readlines()]
-    gameids = (int(header[5:]) for header, *_ in lines)
+    ids = (int(header[5:]) for header, *_ in lines)
     maxs = [reduce(np.maximum, (collect(draw) for draw in draws)) for _, *draws in lines]
-    part1 = sum(id for id, m in zip(gameids, maxs) if all(m <= np.array([12, 13, 14])))
+    part1 = sum(id for id, m in zip(ids, maxs) if all(m <= np.array([12, 13, 14])))
     part2 = sum(reduce(operator.mul, m) for m in maxs)
     return part1, part2
 
+
+def day3(filename: str):
+    def neighbours(row: int, col: int):
+        return {(r, c) for r in range(row - 1, row + 2) for c in range(col - 1, col + 2)}
+
+    parts = reduce(set.union, (neighbours(row, m.span()[0])
+                                for row, s in enumerate(open(filename).readlines())
+                                for m in re.finditer(r'[^0-9\.]', s.strip()) ))
+    gears = {(row, m.span()[0]) : set()
+             for row, s in enumerate(open(filename).readlines())
+             for m in re.finditer(r'\*', s.strip())}
+
+    part1 = 0
+    for row, line in enumerate(open(filename).readlines()):
+        for m in re.finditer(r'(\d+)', line.strip()):
+            number = int(m.group(1))
+            if any((row, col) in parts for col in range(*m.span())):
+                part1 += number
+            adjacent_gears = (gear for col in range(*m.span()) for gear in gears if (row, col) in neighbours(*gear))
+            for gear in adjacent_gears:
+                gears[gear].add(number)
+    part2 = sum(xs[0] * xs[1] for ns in gears.values() if len( (xs := list(ns))) == 2)
+    return part1, part2
+
+
+def day4(filename: str):
+    parts = [re.split(r'\||Card\s+(\d+)+:', line.strip()) for line in open(filename).readlines()]
+    ids = [int(id) for _, id, _, _, _ in parts]
+    wins = [{int(nr) for nr in re.findall(r'\d+', nrs)} for _, _, nrs, _, _ in parts]
+    haves =  [{int(nr) for nr in re.findall(r'\d+', nrs)} for _, _, _, _, nrs in parts]
+    points = {id : list(range(id + 1, id + len(hs.intersection(ws)) + 1)) for id, ws, hs in zip(ids, wins, haves)}
+
+    part1 = sum(2 ** (len(count) - 1) for count in points.values() if count)
+    part2 = reduce(lambda counts, pair: counts + Counter({id : counts[pair[0]] for id in pair[1]}), points.items(), Counter({id : 1 for id in ids}))
+
+    return part1, sum(part2.values())
 
 if __name__ == '__main__':
     solvers = [(key, value) for key, value in globals().items() if key.startswith("day") and callable(value)]
     solvers = sorted(((int(key.split('day')[-1]), value) for key, value in solvers), reverse=True)
 
-    for idx, solver in reversed(solvers):
+    for idx, solver in solvers:
         ns1 = time.process_time_ns()
         p1, p2 = solver(f"input/day{idx}.txt")
         ns2 = time.process_time_ns()
