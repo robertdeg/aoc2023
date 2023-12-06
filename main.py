@@ -30,14 +30,15 @@ def sliding_window(iterable, n):
 
 
 def day6(filename: str):
+    def ways2win(time: int, distance: int):
+        d = sqrt(time*time - 4*distance)
+        return floor((time + d) / 2) - ceil((time - d) / 2) + 1
+
     data = open(filename).read().split('\n')
-    times = [int(nr) for nr in re.findall(r'(\d+)', data[0])]
-    distances = [int(nr) for nr in re.findall(r'(\d+)', data[1])]
-    part1 = reduce(operator.mul, (floor(((t + sqrt(t*t - 4*d)) / 2)) - ceil((t - sqrt(t*t - 4*d)) / 2) + 1
-                                  for t, d  in zip(times, distances)))
-    t = int(''.join(re.findall(r'(\d+)', data[0])))
-    d = int(''.join(re.findall(r'(\d+)', data[1])))
-    part2 = floor(((t + sqrt(t*t - 4*d)) / 2)) - ceil((t - sqrt(t*t - 4*d)) / 2) + 1
+    times =  re.findall(r'(\d+)', data[0])
+    distances =  re.findall(r'(\d+)', data[1])
+    part1 = reduce(operator.mul, map(ways2win, map(int, times), map(int, distances)))
+    part2 = ways2win(int(''.join(times)), int(''.join(distances)))
     return part1, part2
 
 
