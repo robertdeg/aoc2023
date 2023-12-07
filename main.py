@@ -1,3 +1,4 @@
+import functools
 import itertools
 import time
 from math import sqrt, floor, ceil
@@ -29,14 +30,47 @@ def sliding_window(iterable, n):
     return zip(*iterables)
 
 
+def day7(filename: str):
+    values = (dict(T=10, J=11, Q=12, K=13, A=14))
+    values.update({str(k): k for k in range(2, 10)})
+
+    scores = { (5,) : 6, (4,1): 5, (3,2): 4, (3,1,1) : 3, (2,2,1) : 2, (2,1,1,1) : 1, (1,1,1,1,1) : 0 }
+
+    def apply_joker(hand: (str, str, str, str, str)) -> (str, str, str, str, str):
+        ranked = sorted(((v, values[k], k) for k, v in Counter(hand).items()), reverse=True)
+        best = next((card for count, _, card in ranked if card != 'J'), None)
+        return hand if best is None else tuple(best if card == 'J' else card for card in hand)
+
+    def score(hand: (str, str, str, str, str)) -> int:
+        counts = tuple(sorted(Counter(hand if values['J'] > 10 else apply_joker(hand)).values(), reverse=True))
+        return scores[counts]
+
+    def order(hand1: (str, str, str, str, str), hand2: (str, str, str, str, str)):
+        s1 = score(hand1)
+        s2 = score(hand2)
+        if s1 != s2:
+            return s1 - s2
+        return next((values[c1] - values[c2] for c1, c2 in zip(hand1, hand2) if c1 != c2), 0)
+
+    xs = [line.strip().split(' ') for line in open(filename).readlines()]
+    bids = {tuple(hand): int(bid) for hand, bid in xs}
+
+    hands = sorted(bids.keys(), key=functools.cmp_to_key(order))
+    part1 = sum(bids[y] * rank for y, rank in zip(hands, count(1)))
+    values['J'] = 1
+    hands = sorted(bids.keys(), key=functools.cmp_to_key(order))
+    part2 = sum(bids[y] * rank for y, rank in zip(hands, count(1)))
+    return part1, part2
+
+
 def day6(filename: str):
     def ways2win(time: int, distance: int):
-        d = sqrt(time*time - 4*distance)
+        d = sqrt(time * time - 4 * distance)
         return floor((time + d) / 2) - ceil((time - d) / 2) + 1
 
     data = open(filename).read().split('\n')
-    times =  re.findall(r'(\d+)', data[0])
-    distances =  re.findall(r'(\d+)', data[1])
+    times = re.findall(r'(\d+)', data[0])
+    distances = re.findall(r'(\d+)', data[1])
     part1 = reduce(operator.mul, map(ways2win, map(int, times), map(int, distances)))
     part2 = ways2win(int(''.join(times)), int(''.join(distances)))
     return part1, part2
@@ -48,7 +82,7 @@ def day5(filename: str):
 
     def build(idx):
         ms = [m.groups() for line in data[idx].split('\n') if (m := re.match(r'(\d+) (\d+) (\d+)', line.strip()))]
-        return {(int(s), int(s) + int(n)) : (int(d) - int(s)) for d, s, n in ms}
+        return {(int(s), int(s) + int(n)): (int(d) - int(s)) for d, s, n in ms}
 
     def overlaps(a1, a2, b1, b2):
         return max(a1, b1) < min(a2, b2)
@@ -58,7 +92,8 @@ def day5(filename: str):
                 if d2 > d1}
 
     def transform(a1, b1, ranges: dict[(int, int), int]) -> (int, int):
-        return next(((a1 + delta, b1 + delta) for (a2, b2), delta in ranges.items() if overlaps(a2, b2, a1, b1)), (a1, b1))
+        return next(((a1 + delta, b1 + delta) for (a2, b2), delta in ranges.items() if overlaps(a2, b2, a1, b1)),
+                    (a1, b1))
 
     transformers = [build(i + 1) for i in range(7)]
 
@@ -70,7 +105,8 @@ def day5(filename: str):
         return combined
 
     part1 = min(a for a, _ in reduce(combine, transformers, {(a, a + 1) for a in seeds}))
-    part2 = min(a for a, _ in reduce(combine, transformers, {(seeds[i], seeds[i] + seeds[i + 1]) for i in range(0,len(seeds),2)}))
+    part2 = min(a for a, _ in
+                reduce(combine, transformers, {(seeds[i], seeds[i] + seeds[i + 1]) for i in range(0, len(seeds), 2)}))
 
     return part1, part2
 
