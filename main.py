@@ -1,7 +1,7 @@
 import functools
 import itertools
 import time
-from math import sqrt, floor, ceil
+from math import sqrt, floor, ceil, lcm
 import collections
 import operator
 from itertools import zip_longest, starmap, count, chain, islice, takewhile, accumulate, tee, dropwhile, repeat, \
@@ -29,11 +29,24 @@ def sliding_window(iterable, n):
 
     return zip(*iterables)
 
+def day8(filename: str):
+    instructions, elements = open(filename).read().split('\n\n')
+    data = zip(*(re.findall(r'[0-9A-Z][0-9A-Z][0-9A-Z]', line.strip()) for line in elements.split('\n')))
+    network = { s : (l, r) for s, l, r in zip(*data) }
+
+    def steps( start: str, done):
+        path = accumulate(cycle(instructions), lambda cur, c: network[cur][0 if c == 'L' else 1], initial=start)
+        return next(k for s, k in zip(path, count()) if done(s))
+
+    part1 = steps('AAA', lambda s: s == 'ZZZ')
+    part2 = reduce(lcm, (steps(start, lambda s: s.endswith('Z'))
+                         for start in {s for s in network if s.endswith('A')}))
+    return part1, part2
+
 
 def day7(filename: str):
     values = (dict(T=10, J=11, Q=12, K=13, A=14))
     values.update({str(k): k for k in range(2, 10)})
-
     scores = { (5,) : 6, (4,1): 5, (3,2): 4, (3,1,1) : 3, (2,2,1) : 2, (2,1,1,1) : 1, (1,1,1,1,1) : 0 }
 
     def apply_joker(hand: (str, str, str, str, str)) -> (str, str, str, str, str):
@@ -46,20 +59,17 @@ def day7(filename: str):
         return scores[counts]
 
     def order(hand1: (str, str, str, str, str), hand2: (str, str, str, str, str)):
-        s1 = score(hand1)
-        s2 = score(hand2)
-        if s1 != s2:
-            return s1 - s2
-        return next((values[c1] - values[c2] for c1, c2 in zip(hand1, hand2) if c1 != c2), 0)
+        return s1 - s2 if (s1 := score(hand1)) != (s2 := score(hand2)) else next(
+            (values[c1] - values[c2] for c1, c2 in zip(hand1, hand2) if c1 != c2), 0)
 
-    xs = [line.strip().split(' ') for line in open(filename).readlines()]
-    bids = {tuple(hand): int(bid) for hand, bid in xs}
+    data = zip(*(line.strip().split(' ') for line in open(filename).readlines()))
+    bids = {tuple(hand): int(bid) for hand, bid in zip(*data)}
 
-    hands = sorted(bids.keys(), key=functools.cmp_to_key(order))
-    part1 = sum(bids[y] * rank for y, rank in zip(hands, count(1)))
+    ranked = sorted(bids.keys(), key=functools.cmp_to_key(order))
+    part1 = sum(bids[y] * rank for y, rank in zip(ranked, count(1)))
     values['J'] = 1
-    hands = sorted(bids.keys(), key=functools.cmp_to_key(order))
-    part2 = sum(bids[y] * rank for y, rank in zip(hands, count(1)))
+    ranked = sorted(bids.keys(), key=functools.cmp_to_key(order))
+    part2 = sum(bids[y] * rank for y, rank in zip(ranked, count(1)))
     return part1, part2
 
 
