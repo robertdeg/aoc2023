@@ -34,7 +34,7 @@ def day9(filename: str):
     data = [[int(nr) for nr in re.findall(r'-?\d+', line)] for line in open(filename).readlines()]
 
     def solve(nrs: list[int], i: int, j: int):
-        diffs =  [y - x for x, y in zip(nrs, nrs[1:])]
+        diffs = list(map(operator.sub, nrs[1:], nrs))
         return 0 if all(y == 0 for y in nrs) else nrs[i] + j * solve(diffs, i, j)
 
     part1 = sum(solve(xs, -1, 1) for xs in data)
