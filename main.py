@@ -29,6 +29,19 @@ def sliding_window(iterable, n):
 
     return zip(*iterables)
 
+
+def day9(filename: str):
+    data = [[int(nr) for nr in re.findall(r'-?\d+', line)] for line in open(filename).readlines()]
+
+    def solve(nrs: list[int], i: int, j: int):
+        diffs =  [y - x for x, y in zip(nrs, nrs[1:])]
+        return 0 if all(y == 0 for y in nrs) else nrs[i] + j * solve(diffs, i, j)
+
+    part1 = sum(solve(xs, -1, 1) for xs in data)
+    part2 = sum(solve(xs, 0, -1) for xs in data)
+    return part1, part2
+
+
 def day8(filename: str):
     instructions, elements = open(filename).read().split('\n\n')
     data = zip(*(re.findall(r'[0-9A-Z][0-9A-Z][0-9A-Z]', line.strip()) for line in elements.split('\n')))
@@ -39,8 +52,7 @@ def day8(filename: str):
         return next(k for s, k in zip(path, count()) if done(s))
 
     part1 = steps('AAA', lambda s: s == 'ZZZ')
-    part2 = reduce(lcm, (steps(start, lambda s: s.endswith('Z'))
-                         for start in {s for s in network if s.endswith('A')}))
+    part2 = lcm(*(steps(start, lambda s: s.endswith('Z')) for start in {s for s in network if s.endswith('A')}))
     return part1, part2
 
 
