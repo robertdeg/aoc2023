@@ -30,8 +30,50 @@ def sliding_window(iterable, n):
     return zip(*iterables)
 
 
+def day10(filename: str):
+    grid = {(r * 2, c * 2): ch
+            for r, row in enumerate(open(filename).readlines())
+            for c, ch in enumerate(row.strip())}
+    maxrow, maxcol = max(grid)
+
+    valid = dict(up={'|': "7F|", '-': "", '7': "", 'J': "7F|", 'L': "7F|", 'F': "", 'S': "7F|"},
+                 down={'|': "|JL", '-': "", '7': "|JL", 'J': "", 'L': "", 'F': "|JL", 'S': "|JL"},
+                 left={'|': "", '-': "-FL", '7': "-FL", 'J': "-FL", 'L': "", 'F': "", 'S': "-FL"},
+                 right={'|': "", '-': "-J7", '7': "", 'J': "", 'L': "-J7", 'F': "-J7", 'S': "-J7"})
+
+    def nbors(grid, r, c):
+        moves = zip(("up", "down", "left", "right"), ((r - 2, c), (r + 2, c), (r, c - 2), (r, c + 2)))
+        return {pos for name, pos in moves if grid.get(pos, '*') in valid[name][grid[(r, c)]]}
+
+    def find_cycle() -> set:
+        pos = start = next(pt for pt in grid if grid[pt] == 'S')
+        cycle = set()
+        while pos not in cycle:
+            cycle.add(pos)
+            nextpos = next(iter(nbors(grid, *pos) - cycle), start)
+            yield tuple((a + b) // 2 for a, b in zip(pos, nextpos))
+            yield nextpos
+            pos = nextpos
+
+    def prune(positions, pos):
+        queue = [pos]
+        while queue:
+            r, c = queue[-1]
+            queue.pop()
+            if (r, c) in positions:
+                positions.discard((r, c))
+                for pos in ((r + 1, c), (r - 1, c), (r, c - 1), (r, c + 1)):
+                    if pos in positions:
+                        queue.append(pos)
+
+    cycle = set(find_cycle())
+    remaining = {(r, c) for r in range(-1, maxrow + 2) for c in range(-1, maxcol + 2)} - cycle
+    prune(remaining, (-1, -1))
+    return len(cycle) // 4, sum(r % 2 == 0 and c % 2 == 0 for r, c in remaining)
+
+
 def day9(filename: str):
-    data = [[int(nr) for nr in re.findall(r'-?\d+', line)] for line in open(filename).readlines()]
+    data = [[int(nr) for nr in line.split(' ')] for line in open(filename).readlines()]
 
     def solve(nrs: list[int], i: int, j: int):
         diffs = list(map(operator.sub, nrs[1:], nrs))
@@ -45,9 +87,9 @@ def day9(filename: str):
 def day8(filename: str):
     instructions, elements = open(filename).read().split('\n\n')
     data = zip(*(re.findall(r'[0-9A-Z][0-9A-Z][0-9A-Z]', line.strip()) for line in elements.split('\n')))
-    network = { s : (l, r) for s, l, r in zip(*data) }
+    network = {s: (l, r) for s, l, r in zip(*data)}
 
-    def steps( start: str, done):
+    def steps(start: str, done):
         path = accumulate(cycle(instructions), lambda cur, c: network[cur][0 if c == 'L' else 1], initial=start)
         return next(k for s, k in zip(path, count()) if done(s))
 
@@ -59,7 +101,7 @@ def day8(filename: str):
 def day7(filename: str):
     values = (dict(T=10, J=11, Q=12, K=13, A=14))
     values.update({str(k): k for k in range(2, 10)})
-    scores = { (5,) : 6, (4,1): 5, (3,2): 4, (3,1,1) : 3, (2,2,1) : 2, (2,1,1,1) : 1, (1,1,1,1,1) : 0 }
+    scores = {(5,): 6, (4, 1): 5, (3, 2): 4, (3, 1, 1): 3, (2, 2, 1): 2, (2, 1, 1, 1): 1, (1, 1, 1, 1, 1): 0}
 
     def apply_joker(hand: (str, str, str, str, str)) -> (str, str, str, str, str):
         ranked = sorted(((v, values[k], k) for k, v in Counter(hand).items()), reverse=True)
@@ -128,7 +170,8 @@ def day5(filename: str):
 
     part1 = min(a for a, _ in reduce(combine, transformers, {(a, a + 1) for a in seeds}))
     part2 = min(a for a, _ in
-                reduce(combine, transformers, {(seeds[i], seeds[i] + seeds[i + 1]) for i in range(0, len(seeds), 2)}))
+                reduce(combine, transformers,
+                       {(seeds[i], seeds[i] + seeds[i + 1]) for i in range(0, len(seeds), 2)}))
 
     return part1, part2
 
