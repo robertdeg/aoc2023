@@ -30,6 +30,28 @@ def sliding_window(iterable, n):
     return zip(*iterables)
 
 
+def day11(filename: str):
+    galaxies = {(row, col)
+                   for row, line in enumerate(open(filename).readlines())
+                   for col, ch in enumerate(line)
+                   if ch == '#'}
+
+    rows = { row for row, _ in galaxies }
+    cols = { col for _, col in galaxies }
+
+    def num_gaps(r1, r2, values):
+        return sum(r not in values for r in range(min(r1, r2), max(r1, r2)))
+
+    def distance(r1, c1, r2, c2):
+        return abs(r1 - r2) + abs(c1 - c2), num_gaps(r1, r2, rows) + num_gaps(c1, c2, cols)
+
+    distances = [distance(*pt1, *pt2) for pt1, pt2 in itertools.combinations(galaxies, 2)]
+    part1 = sum(d + gap for d, gap in distances)
+    part2 = sum(d + gap * 999999 for d, gap in distances)
+
+    return part1, part2
+
+
 def day10(filename: str):
     grid = {(r * 2, c * 2): ch
             for r, row in enumerate(open(filename).readlines())
