@@ -9,7 +9,7 @@ from itertools import zip_longest, starmap, count, chain, islice, takewhile, acc
 from functools import reduce, partial, cmp_to_key
 from collections import Counter
 import re
-from typing import Iterable
+from typing import Iterable, Any
 
 import numpy as np
 
@@ -28,6 +28,49 @@ def sliding_window(iterable, n):
             next(iterable, None)
 
     return zip(*iterables)
+
+def splits(xs: list[Any]) -> Iterable:
+    yield from ((xs[:i], xs[i:]) for i in range(1, len(xs)))
+
+def day12(filename: str):
+    def ways_to_fit(chars: str, nrs: list[int]) -> int:
+        if sum(nrs) + len(nrs) - 1 > len(chars):
+            return 0
+        if not nrs:
+            return 1 if '#' not in chars else 0
+        if nrs[0] == len(chars):
+            return 1 if len(nrs) == 1 else 0
+        if '#' not in chars:
+            print('.')
+
+        here = 0 if chars[nrs[0]] == '#' else ways_to_fit(chars[nrs[0] + 1:], nrs[1:])
+        skip = ways_to_fit(chars[1:], nrs) if chars[0] == '?' else 0
+        return here + skip
+
+    def arrangements(chars: list[str], nrs: list[int]) -> int:
+        if not nrs:
+            return 1 if all ('#' not in xs for xs in chars) else 0
+        if not chars:
+            return 0
+        s = 0
+        for n in range(0, len(nrs) + 1):
+            # find out how in how many ways we can fit the first n
+            ways = ways_to_fit(chars[0], nrs[:n])
+            # multiply that with the number of arrangements of the remainder of the numbers
+            if ways > 0:
+                s += ways * arrangements(chars[1:], nrs[n:])
+        return s
+
+    data = zip(*(line.strip().split(' ') for line in open(filename).readlines()))
+    part1 = 0
+    for line, numbers in zip(*data):
+        line2 = '?'.join([line] * 5)
+        numbers = list(map(int, numbers.split(',')))
+        numbers2 = numbers * 5
+        ans = arrangements(line.split('.'), numbers)
+        print(f'{line} {numbers} -> {ans}')
+        part1 += ans
+    return part1, 0
 
 
 def day11(filename: str):
